@@ -7,6 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>VinylScrobbler</title>
+<meta name="theme-color" content="#d63030">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-512.png">
+<link rel="apple-touch-icon" href="icon-512.png">
 <style>
 :root{
   --bg:#f5f2ee;--surf:#fff;--surf2:#ede9e3;--txt:#18160f;--txt2:#7a7268;
@@ -284,16 +288,31 @@ let curRel=null,curTracks=[];
 let isDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 async function init(){
-  try{const r=await window.storage.get('theme');if(r)setTheme(r.value==='dark');}catch{}
-  try{const r=await window.storage.get('cfg');if(r){cfg={...cfg,...JSON.parse(r.value)};fillForm();}}catch{}
-  try{const r=await window.storage.get('hist');if(r){hist=JSON.parse(r.value);renderHist();}}catch{}
+try{
+  const r = localStorage.getItem('theme');
+  if(r) setTheme(r === 'dark');
+}catch{}
+ try{
+  const r = localStorage.getItem('cfg');
+  if(r){
+    cfg = {...cfg, ...JSON.parse(r)};
+    fillForm();
+  }
+}catch{}
+try{
+  const r = localStorage.getItem('hist');
+  if(r){
+    hist = JSON.parse(r);
+    renderHist();
+  }
+}catch{}
   if(cfg.dToken&&cfg.dUser)loadCollection();
   initSwipe();
 }
 
 /* Theme */
 function setTheme(dark){isDark=dark;document.documentElement.setAttribute('data-theme',dark?'dark':'light');document.getElementById('themeBtn').textContent=dark?'☀️':'🌙';}
-function toggleTheme(){setTheme(!isDark);window.storage.set('theme',isDark?'dark':'light').catch(()=>{});}
+function toggleTheme(){setTheme(!isDark);localStorage.setItem('theme', isDark ? 'dark' : 'light');}
 
 /* Nav */
 function goPage(n){
@@ -315,7 +334,7 @@ async function saveSettings(){
   cfg.lUser=document.getElementById('lUser').value.trim();
   cfg.lPass=document.getElementById('lPass').value;
   cfg.lSK='';
-  await window.storage.set('cfg',JSON.stringify(cfg)).catch(()=>{});
+  localStorage.setItem('cfg', JSON.stringify(cfg));
   toast('✓ Configuración guardada');
   if(cfg.dToken&&cfg.dUser){goPage('collection');loadCollection();}
 }
@@ -512,7 +531,7 @@ async function doScrobble(){
       const thumb=i.thumb||'';
       hist.unshift({title:album,artist:albumArtist,thumb,n:sel.length,ts:Date.now()});
       hist=hist.slice(0,50);
-      await window.storage.set('hist',JSON.stringify(hist)).catch(()=>{});
+      localStorage.setItem('hist', JSON.stringify(hist));
       renderHist();closeSheet();
     }else{toast('Error: '+(d.message||'Respuesta inválida'));}
   }catch{toast('Error de red al scrobblear');}
@@ -552,6 +571,11 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 function emptyH(t,b){return`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><h3>${t}</h3><p>${b}</p></div>`;}
 
 init();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js');
+  });
+}
 </script>
 </body>
 </html>
